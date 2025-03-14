@@ -49,7 +49,7 @@ local HackerTheme = {
 -- Window
 local Window = Rayfield:CreateWindow({
     Name = "Transfur Outbreak | Lime.Cheat V2 | Mobile Edition",
-    Icon = 6472368967, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+    Icon = https://create.roblox.com/store/asset/6472368967/Transfur-Outbreak-Rune, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
     LoadingTitle = "Loading gui..",
     LoadingSubtitle = " ",
     Theme = HackerTheme, 
