@@ -87,7 +87,7 @@ local InfectedTab = Window:CreateTab("Infected", 0)
 local EspTab = Window:CreateTab("Esp", 0)
 local MiscTab = Window:CreateTab("Misc", 0)
 
-local Label = HumanTabTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
 -- Auto Fire Toggle
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
