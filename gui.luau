@@ -89,71 +89,99 @@ local MiscTab = Window:CreateTab("Misc", 0)
 
 local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
 -- Auto Fire Toggle
+
+_G.FireRate = 0.1 -- Normal FireRate, Feel free to change ig
+
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
     CurrentValue = false,
     Flag = "AutoFire",
     Callback = function(Value)
-        _G.disabled = not Value
-        if Value then
-            spawn(function()
-                local UIS = game:GetService("UserInputService")
-                local Camera = workspace.CurrentCamera
-                local shoot_event = game:GetService("ReplicatedStorage").PEW
-                local Debris = game:GetService("Debris")
-                local localplayer = game.Players.LocalPlayer
-                local target_part = "Head"
-                local settings = nil
-                local replacement = {
-                    [3] = 0.1,
-                    [4] = nil,
-                    [5] = nil,
-                    [7] = nil
-                }
+      _G.disabled = not Value
+      if Value then
+          spawn(function()
+              local UIS = game:GetService("UserInputService")
+              local Camera = workspace.CurrentCamera
+              local shoot_event = game:GetService("ReplicatedStorage").PEW
+              local Debris = game:GetService("Debris")
+              local localplayer = game.Players.LocalPlayer
+              local target_part = "Head"
+              local settings = nil
+              local replacement = {
+                  [3] = 0.1,
+                  [4] = nil,
+                  [5] = nil,
+                  [7] = nil
+              }
 
-                function get_weapon()
-                    return localplayer.Character:FindFirstChildOfClass("Tool")
-                end
+              function Draw(p22, p23, color)
+              local v24 = Instance.new("Part", workspace)
+                  v24.Material = _G.LineMaterial or "Neon"
+                  v24.Anchored = true
+                  v24.CanCollide = false
+                  v24.Transparency = 0
+                  v24.Color = color
+                  v24.Size = Vector3.new(0.1, (p22 - p23).Magnitude, 0.1)
+                  v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -(p22 - p23).Magnitude / 2) * CFrame.Angles(math.pi / 2, 0, 0)
+                  Debris:AddItem(v24, 0.1)
+              end
 
-                function getNearestToCursor()
-                    local cursorPosition = UIS:GetMouseLocation()
-                    local nearestTarget = nil
+              function get_weapon()
+                  return localplayer.Character:FindFirstChildOfClass("Tool")
+              end
 
-                    for _, player in pairs(game.Players:GetPlayers()) do
-                        if player.Team ~= localplayer.Team then
-                            local character = player.Character
-                            if character then
-                                local hrp = character:FindFirstChild(target_part)
-                                if hrp and character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                                    return hrp
-                                end
-                            end
-                        end
-                    end
-                    return nil
-                end
+              function getNearestToCursor()
+                  local cursorPosition = UIS:GetMouseLocation()
+                  local nearestTarget = nil
+                  local shortestDistance = math.huge
 
-                while _G.disabled == false do
-                    task.wait(_G.FireRate)
-                    local weapon = get_weapon()
-                    if weapon then
-                        local data = weapon:FindFirstChild("SETTINGS")
-                        if data then
-                            settings = require(data)
-                            local target = getNearestToCursor()
-                            if target then
-                                replacement[4] = target
-                                shoot_event:FireServer(weapon, settings.COUNT, replacement[3], replacement[4], replacement[5], false, replacement[7], settings.RANGE)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end,
+                  for _, player in pairs(game.Players:GetPlayers()) do
+                      if player.Team ~= localplayer.Team then
+                          local character = player.Character
+                          if not character then continue end
+                          local hrp = character:FindFirstChild(target_part)
+                          if not hrp then continue end
+                          local humanoid = character:FindFirstChildOfClass("Humanoid")
+                          if not humanoid or humanoid.Health <= 0 then continue end
+                          local torso = localplayer.Character and localplayer.Character:FindFirstChild("Torso")
+                          if not torso then continue end
+                          local rayOrigin = torso.Position
+                          local rayDirection = (hrp.Position - rayOrigin).Unit * settings["RANGE"]
+                          local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
+                          local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
+                          if hitPart and hitPart.Parent == hrp.Parent then
+                              Draw(rayOrigin, hitPos, Options.LineColorPicker.Value)
+                              return hrp
+                          end
+                      end
+                  end
+                  return nil
+              end
+
+              while _G.disabled == false do
+                  task.wait(_G.FireRate)
+                  local weapon = get_weapon()
+                  if weapon then
+                      local data = weapon:FindFirstChild("SETTINGS")
+                      if data then
+                          settings = require(data)
+                          replacement[3] = settings.FIRERATE
+                          local target = getNearestToCursor()
+                          if target then
+                              replacement[4] = target
+                              replacement[5] = (target.Position - weapon.Barrel.Position).Unit
+                              replacement[7] = target.Position
+                              shoot_event:FireServer(weapon, settings.COUNT, replacement[3], replacement[4], replacement[5], false, replacement[7], settings.RANGE)
+                          end
+                      end
+                  end
+              end
+          end)
+      end
+  end
 })
 
--- Fire Rate Slider
+
 local FireRateSlider = HumanTab:CreateSlider({
     Name = "Fire Rate",
     Range = {0.02, 10},
@@ -163,4 +191,15 @@ local FireRateSlider = HumanTab:CreateSlider({
     Callback = function(Value)
         _G.FireRate = Value
     end,
+})
+
+local Dropdown = HumanTab:CreateDropdown({
+   Name = "RayCast Materials",
+   Options = {"Neon","Plastic", "Wood", "Metal", "Glass". "DiamondPlate"},
+   CurrentOption = {"Option 1"},
+   MultipleOptions = false,
+   Flag = "RayCastMaterialSet", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+      _G.LineMaterial = Value
+   end,
 })
