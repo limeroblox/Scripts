@@ -150,7 +150,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                           local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
                           local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
                           if hitPart and hitPart.Parent == hrp.Parent then
-                              Draw(rayOrigin, hitPos, Options.LineColorPicker.Value)
+                              Draw(rayOrigin, hitPos, LineColor.Value)
                               return hrp
                           end
                       end
@@ -209,5 +209,6 @@ local ColorPicker = HumanTab:CreateColorPicker({
    Color = Color3.fromRGB(255,255,255),
    Flag = "LineColorPicker", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
+      _G.LineColor = Value
    end
 })
