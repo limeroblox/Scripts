@@ -24,7 +24,7 @@ local HackerTheme = {
     SecondaryElementBackground = Color3.fromRGB(0, 0, 0),
     ElementStroke = Color3.fromRGB(0, 255, 0),
     SecondaryElementStroke = Color3.fromRGB(0, 0, 0),
-            
+
     SliderBackground = Color3.fromRGB(0, 0, 0),
     SliderProgress = Color3.fromRGB(0, 255, 0),
     SliderStroke = Color3.fromRGB(0, 255, 0),
@@ -49,36 +49,111 @@ local HackerTheme = {
 -- Window
 local Window = Rayfield:CreateWindow({
     Name = "Transfur Outbreak | Lime.Cheat V2 | Mobile Edition",
-    Icon = rbxassetid://6472368967, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+    Icon = 0, 
     LoadingTitle = "Loading gui..",
-    LoadingSubtitle = " ",
+    LoadingSubtitle = "only mobile compatible ui :P",
     Theme = HackerTheme, 
- 
+
     DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
- 
+    DisableBuildWarnings = false, 
+
     ConfigurationSaving = {
        Enabled = true,
-       FolderName = nil, -- Create a custom folder for your hub/game
+       FolderName = nil, 
        FileName = "Big Hub"
     },
- 
+
     Discord = {
-       Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-       Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
-       RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+       Enabled = false, 
+       Invite = "noinvitelink", 
+       RememberJoins = true 
     },
- 
-    KeySystem = false, -- Set this to true to use our key system
+
+    KeySystem = false, 
     KeySettings = {
        Title = "Untitled",
        Subtitle = "Key System",
-       Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-       FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-       SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-       GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-       Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+       Note = "No method of obtaining the key is provided", 
+       FileName = "Key", 
+       SaveKey = true, 
+       GrabKeyFromSite = false, 
+       Key = {"Hello"} 
     }
  })
--- Tabs 
- local Tab = Window:CreateTab("Human", 12823489278)
+
+-- Tab (Human)
+local Tab = Window:CreateTab("Human", 4483362458)
+local Button = Tab:CreateButton({
+    Name = "AutoFire",
+    Callback = function(Value)
+        _G.disabled = not Value
+        if Value then
+            spawn(function()
+                local UIS = game:GetService("UserInputService")
+                local Camera = workspace.CurrentCamera
+                local shoot_event = game:GetService("ReplicatedStorage").PEW
+                local Debris = game:GetService("Debris")
+                local localplayer = game.Players.LocalPlayer
+                local target_part = "Head"
+                local settings = nil
+                local replacement = {
+                    [3] = 0.1,
+                    [4] = nil,
+                    [5] = nil,
+                    [7] = nil
+                }
+  
+                function get_weapon()
+                    return localplayer.Character:FindFirstChildOfClass("Tool")
+                end
+  
+                function getNearestToCursor()
+                    local cursorPosition = UIS:GetMouseLocation()
+                    local nearestTarget = nil
+  
+                    for _, player in pairs(game.Players:GetPlayers()) do
+                        if player.Team ~= localplayer.Team then
+                            local character = player.Character
+                            if character then
+                                local hrp = character:FindFirstChild(target_part)
+                                if hrp and character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                                    return hrp
+                                end
+                            end
+                        end
+                    end
+                    return nil
+                end
+  
+                while _G.disabled == false do
+                    task.wait(_G.FireRate)
+                    local weapon = get_weapon()
+                    if weapon then
+                        local data = weapon:FindFirstChild("SETTINGS")
+                        if data then
+                            settings = require(data)
+                            local target = getNearestToCursor()
+                            if target then
+                                replacement[4] = target
+                                shoot_event:FireServer(weapon, settings.COUNT, replacement[3], replacement[4], replacement[5], false, replacement[7], settings.RANGE)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+     end,
+    end,
+})
+
+-- Fire Rate Slider
+local FireRateSlider = Tab:CreateSlider({
+   Name = "Fire Rate",
+   Range = {0.02, 10},
+   Increment = 0.01,
+   CurrentValue = 0.1,
+   Flag = "FireRate",
+   Callback = function(Value)
+      _G.FireRate = Value
+   end,
+}) 
