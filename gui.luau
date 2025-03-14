@@ -206,9 +206,9 @@ local Dropdown = HumanTab:CreateDropdown({
 
 local ColorPicker = HumanTab:CreateColorPicker({
    Name = "RayCast Color",
-   Color = Color3.fromRGB(255,255,255),
+   Color = Color3.fromRGB(0, 255, 0),
    Flag = "LineColorPicker", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-      _G.LineColor = Color
+   Callback = function(Color)
+      _G.LineColor = Value
    end
 })
