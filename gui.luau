@@ -150,7 +150,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                           local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
                           local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
                           if hitPart and hitPart.Parent == hrp.Parent then
-                              Draw(rayOrigin, hitPos, LineColor.Value)
+                              Draw(rayOrigin, hitPos, LineColor, LineMaterial)
                               return hrp
                           end
                       end
