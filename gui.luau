@@ -195,7 +195,7 @@ local FireRateSlider = HumanTab:CreateSlider({
 
 local Dropdown = HumanTab:CreateDropdown({
    Name = "RayCast Materials",
-   Options = {"Neon","Plastic", "Wood", "Metal", "Glass". "DiamondPlate"},
+   Options = {"Neon","Plastic","Wood","Metal","Glass","DiamondPlate"},
    CurrentOption = {"Option 1"},
    MultipleOptions = false,
    Flag = "RayCastMaterialSet", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
