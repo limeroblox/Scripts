@@ -3,13 +3,56 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 ------[!!Do Not Touch!!]------
 
+local HackerTheme = {
+    TextColor = Color3.fromRGB(0, 255, 0), -- Neon Green Text
+
+    Background = Color3.fromRGB(0, 0, 0), -- Pure Black Background
+    Topbar = Color3.fromRGB(0, 0, 0), -- Black Topbar
+    Shadow = Color3.fromRGB(0, 0, 0), -- No Shadow (Fully Black)
+
+    NotificationBackground = Color3.fromRGB(0, 0, 0),
+    NotificationActionsBackground = Color3.fromRGB(0, 0, 0),
+
+    TabBackground = Color3.fromRGB(0, 0, 0),
+    TabStroke = Color3.fromRGB(0, 0, 0),
+    TabBackgroundSelected = Color3.fromRGB(0, 0, 0),
+    TabTextColor = Color3.fromRGB(0, 255, 0),
+    SelectedTabTextColor = Color3.fromRGB(0, 255, 0),
+
+    ElementBackground = Color3.fromRGB(0, 0, 0),
+    ElementBackgroundHover = Color3.fromRGB(0, 0, 0),
+    SecondaryElementBackground = Color3.fromRGB(0, 0, 0),
+    ElementStroke = Color3.fromRGB(0, 255, 0),
+    SecondaryElementStroke = Color3.fromRGB(0, 0, 0),
+            
+    SliderBackground = Color3.fromRGB(0, 0, 0),
+    SliderProgress = Color3.fromRGB(0, 255, 0),
+    SliderStroke = Color3.fromRGB(0, 255, 0),
+
+    ToggleBackground = Color3.fromRGB(0, 0, 0),
+    ToggleEnabled = Color3.fromRGB(0, 255, 0),
+    ToggleDisabled = Color3.fromRGB(0, 0, 0),
+    ToggleEnabledStroke = Color3.fromRGB(0, 255, 0),
+    ToggleDisabledStroke = Color3.fromRGB(0, 0, 0),
+    ToggleEnabledOuterStroke = Color3.fromRGB(0, 255, 0),
+    ToggleDisabledOuterStroke = Color3.fromRGB(0, 0, 0),
+
+    DropdownSelected = Color3.fromRGB(0, 0, 0),
+    DropdownUnselected = Color3.fromRGB(0, 0, 0),
+
+    InputBackground = Color3.fromRGB(0, 0, 0),
+    InputStroke = Color3.fromRGB(0, 255, 0),
+    PlaceholderColor = Color3.fromRGB(0, 255, 0)
+}
+
+
 -- Window
 local Window = Rayfield:CreateWindow({
     Name = "Transfur Outbreak | Lime.Cheat V2 | Mobile Edition",
     Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
     LoadingTitle = "Loading gui..",
     LoadingSubtitle = "only mobile compadiable ui :P",
-    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+    Theme = HackerTheme, 
  
     DisableRayfieldPrompts = false,
     DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
@@ -38,4 +81,4 @@ local Window = Rayfield:CreateWindow({
     }
  })
 -- Tabs 
- local Tab = Window:CreateTab("Human", 4483362458)
+ local Tab = Window:CreateTab("Human", 12823489278)
