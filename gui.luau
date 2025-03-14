@@ -209,6 +209,6 @@ local ColorPicker = HumanTab:CreateColorPicker({
    Color = Color3.fromRGB(255,255,255),
    Flag = "LineColorPicker", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
-      _G.LineColor = Value
+      _G.LineColor = Color
    end
 })
