@@ -81,10 +81,14 @@ local Window = Rayfield:CreateWindow({
     }
  })
 
--- Tab (Human)
+-- Tabs 
 local Tab = Window:CreateTab("Human", 4483362458)
-local Button = Tab:CreateButton({
-    Name = "AutoFire",
+
+-- Auto Fire Toggle
+local AutoFireToggle = Tab:CreateToggle({
+    Name = "Auto Fire",
+    CurrentValue = false,
+    Flag = "AutoFire",
     Callback = function(Value)
         _G.disabled = not Value
         if Value then
@@ -102,15 +106,15 @@ local Button = Tab:CreateButton({
                     [5] = nil,
                     [7] = nil
                 }
-  
+
                 function get_weapon()
                     return localplayer.Character:FindFirstChildOfClass("Tool")
                 end
-  
+
                 function getNearestToCursor()
                     local cursorPosition = UIS:GetMouseLocation()
                     local nearestTarget = nil
-  
+
                     for _, player in pairs(game.Players:GetPlayers()) do
                         if player.Team ~= localplayer.Team then
                             local character = player.Character
@@ -124,7 +128,7 @@ local Button = Tab:CreateButton({
                     end
                     return nil
                 end
-  
+
                 while _G.disabled == false do
                     task.wait(_G.FireRate)
                     local weapon = get_weapon()
@@ -142,18 +146,28 @@ local Button = Tab:CreateButton({
                 end
             end)
         end
-     end,
     end,
 })
 
 -- Fire Rate Slider
 local FireRateSlider = Tab:CreateSlider({
-   Name = "Fire Rate",
-   Range = {0.02, 10},
-   Increment = 0.01,
-   CurrentValue = 0.1,
-   Flag = "FireRate",
-   Callback = function(Value)
-      _G.FireRate = Value
-   end,
-}) 
+    Name = "Fire Rate",
+    Range = {0.02, 10},
+    Increment = 0.01,
+    CurrentValue = 0.1,
+    Flag = "FireRate",
+    Callback = function(Value)
+        _G.FireRate = Value
+        print("Fire Rate set to:", Value)
+    end,
+})
+
+-- Fade On Death Toggle
+local FadeOnDeath = Tab:CreateToggle({
+    Name = "Fade On Death",
+    CurrentValue = false,
+    Flag = "FadeOnDeath",
+    Callback = function(Value)
+        _G.ThanosSnap = Value
+    end,
+})
