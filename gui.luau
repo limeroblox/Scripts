@@ -82,13 +82,12 @@ local Window = Rayfield:CreateWindow({
  })
 
 -- Tabs 
-local HumanTab = Window:CreateTab("Human", 4483362458)
+local HumanTab = Window:CreateTab("Human")
+local InfectedTab = Window:CreateTab("Infected")
+--Start Of Human--
 
 -- Rage Label
 local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
-
--- Auto Fire Toggle
-_G.FireRate = 0.1 -- Normal FireRate
 
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
@@ -189,7 +188,7 @@ local FireRateSlider = HumanTab:CreateSlider({
 local Dropdown = HumanTab:CreateDropdown({
    Name = "RayCast Materials",
    Options = {"Neon","Plastic","Wood","Metal","Glass","DiamondPlate"},
-   CurrentOption = {"Option 1"},
+   CurrentOption = {"Neon"}, -- Default
    MultipleOptions = false,
    Flag = "RayCastMaterialSet", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Options)
@@ -205,3 +204,4 @@ local ColorPicker = HumanTab:CreateColorPicker({
       _G.LineColor = Value
    end
 })
+--End Of Human--
