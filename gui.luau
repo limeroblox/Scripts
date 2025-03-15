@@ -181,6 +181,7 @@ local FireRateSlider = HumanTab:CreateSlider({
     CurrentValue = 0.1,
     Flag = "FireRate",
     Callback = function(Value)
+        task.wait(0.02)
         _G.FireRate = Value
     end,
 })
