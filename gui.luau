@@ -89,6 +89,9 @@ local InfectedTab = Window:CreateTab("Infected")
 -- Rage Label
 local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
 
+-- Auto Fire Toggle
+_G.FireRate = 0.1 -- Default Fire Rate
+
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
     CurrentValue = false,
@@ -102,8 +105,9 @@ local AutoFireToggle = HumanTab:CreateToggle({
                 local shoot_event = game:GetService("ReplicatedStorage").PEW
                 local Debris = game:GetService("Debris")
                 local localplayer = game.Players.LocalPlayer
-                local target_part = "Head"
                 local settings = nil
+                local target_part = "Head"
+
                 local replacement = {
                     [3] = 0.1,
                     [4] = nil,
@@ -111,22 +115,33 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     [7] = nil
                 }
 
+                -- Function to draw debug lines
                 function Draw(p22, p23, color)
                     local v24 = Instance.new("Part", workspace.RayCast)
-                    v24.Material = _G.LineMaterial or "Neon"
+                    v24.Material = _G.LineMaterial
                     v24.Anchored = true
                     v24.CanCollide = false
                     v24.Transparency = 0
                     v24.Color = _G.LineColor
-                    v24.Size = Vector3.new(0.1, (p22 - p23).Magnitude, 0.1)
-                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -(p22 - p23).Magnitude / 2) * CFrame.Angles(math.pi / 2, 0, 0)
-                    Debris:AddItem(v24, 0.1)
+                    v24.Size = Vector3.new(0, 0, 0)
+                    local v25 = (p22 - p23).Magnitude
+                    v24.Size = Vector3.new(0.1, v25, 0.1)
+                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -v25 / 2) * CFrame.Angles(math.pi / 2, 0, 0)
+                    game.Debris:AddItem(v24, 0.1)
                 end
 
+                -- Function to get the player's current weapon
                 function get_weapon()
                     return localplayer.Character:FindFirstChildOfClass("Tool")
                 end
 
+                -- Get the 2D screen position of a 3D point
+                function getScreenPosition(worldPosition)
+                    local screenPosition, onScreen = Camera:WorldToViewportPoint(worldPosition)
+                    return screenPosition, onScreen
+                end
+
+                -- Get the nearest enemy to the cursor
                 function getNearestToCursor()
                     local cursorPosition = UIS:GetMouseLocation()
                     local nearestTarget = nil
@@ -135,39 +150,84 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     for _, player in pairs(game.Players:GetPlayers()) do
                         if player.Team ~= localplayer.Team then
                             local character = player.Character
-                            if character then
-                                local hrp = character:FindFirstChild(target_part)
-                                if hrp and character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                                    local screenPosition = Camera:WorldToViewportPoint(hrp.Position)
-                                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
-                                    if distance < shortestDistance then
-                                        shortestDistance = distance
-                                        nearestTarget = hrp
-                                    end
-                                end
+                            if not character then continue end
+
+                            local hrp = character:FindFirstChild(target_part)
+                            if not hrp then continue end
+
+                            local ability = character:FindFirstChild("Ability")
+                            if not ability or ability.Value == "Blackvalk" then continue end
+
+                            local humanoid = character:FindFirstChildOfClass("Humanoid")
+                            if not humanoid or humanoid.Health <= 0 then continue end
+
+                            local screenPosition, onScreen = getScreenPosition(hrp.Position)
+                            if not onScreen then continue end
+
+                            local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                nearestTarget = {
+                                    position = hrp.Position,
+                                    target = hrp
+                                }
                             end
                         end
                     end
                     return nearestTarget
                 end
 
+                -- Main target selection logic
+                function getTarget()
+                    if not settings then return nil end
+
+                    local nearest = getNearestToCursor()
+                    if not nearest then return nil end
+
+                    local torso = localplayer.Character and localplayer.Character:FindFirstChild("Torso")
+                    if not torso then return nil end
+
+                    local rayOrigin = torso.Position
+                    local rayDirection = (nearest.position - rayOrigin).Unit * settings["RANGE"]
+                    local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
+                    local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
+
+                    if hitPart and hitPart.Parent == nearest.target.Parent then
+                        Draw(rayOrigin, hitPos, Color3.new(0, 1, 0))
+                        return nearest
+                    end
+                    return nil
+                end
+
+                -- Main loop
                 while not _G.disabled do
                     task.wait(_G.FireRate)
                     local weapon = get_weapon()
-                    if weapon then
-                        local data = weapon:FindFirstChild("SETTINGS")
-                        if data then
-                            settings = require(data)
-                            local target = getNearestToCursor()
-                            if target then
-                                replacement[4] = target
-                                replacement[5] = (target.Position - weapon.Barrel.Position).Unit
-                                replacement[7] = target.Position
-                                shoot_event:FireServer(weapon, settings.COUNT, replacement[3], replacement[4], replacement[5], false, replacement[7], settings.RANGE)
-                            end
-                        end
+                    if not weapon then continue end
+
+                    local data = weapon:FindFirstChild("SETTINGS")
+                    if not data then continue end
+
+                    settings = require(data)
+                    replacement[3] = settings.FIRERATE
+
+                    local aimbot = getTarget()
+                    if aimbot and aimbot.target and aimbot.position then
+                        replacement[4] = aimbot.target
+                        replacement[5] = CFrame.new(weapon.Barrel.Position, aimbot.position).LookVector
+                        replacement[7] = aimbot.position
+
+                        shoot_event:FireServer(weapon,
+                            settings.COUNT,
+                            replacement[3],
+                            replacement[4],
+                            replacement[5],
+                            false,
+                            replacement[7],
+                            settings.RANGE)
                     end
                 end
+                print("disabled")
             end)
         end
     end
@@ -180,7 +240,6 @@ local FireRateSlider = HumanTab:CreateSlider({
     CurrentValue = 0.1,
     Flag = "FireRate",
     Callback = function(Value)
-        task.wait(0.02)
         _G.FireRate = Value
     end,
 })
