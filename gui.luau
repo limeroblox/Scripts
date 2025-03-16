@@ -87,17 +87,21 @@ local InfectedTab = Window:CreateTab("Infected")
 --Start Of Human--
 
 -- Rage Label
-local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
 
--- Auto Fire Toggle
-_G.FireRate = 0.1 -- Default Fire Rate
+local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
+-- Local Variables
+
+local FireRate = 0.1 -- Default Fire Rate
+local RayCastMaterial = "Neon" -- Default Material
+local RayCastColor = Color3.fromRGB(0, 255, 0) -- Default RayCast Color
+local disabled = true -- Auto Fire State
 
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
     CurrentValue = false,
     Flag = "AutoFire",
     Callback = function(Value)
-        _G.disabled = not Value
+        disabled = not Value
         if Value then
             spawn(function()
                 local UIS = game:GetService("UserInputService")
@@ -116,33 +120,33 @@ local AutoFireToggle = HumanTab:CreateToggle({
                 }
 
                 -- Function to draw debug lines
-                function Draw(p22, p23, color)
+                local function Draw(p22, p23, color)
                     local v24 = Instance.new("Part", workspace.RayCast)
-                    v24.Material = _G.LineMaterial
+                    v24.Material = RayCastMaterial
                     v24.Anchored = true
                     v24.CanCollide = false
                     v24.Transparency = 0
-                    v24.Color = _G.LineColor
+                    v24.Color = RayCastColor
                     v24.Size = Vector3.new(0, 0, 0)
                     local v25 = (p22 - p23).Magnitude
                     v24.Size = Vector3.new(0.1, v25, 0.1)
                     v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -v25 / 2) * CFrame.Angles(math.pi / 2, 0, 0)
-                    game.Debris:AddItem(v24, 0.1)
+                    Debris:AddItem(v24, 0.1)
                 end
 
                 -- Function to get the player's current weapon
-                function get_weapon()
+                local function get_weapon()
                     return localplayer.Character:FindFirstChildOfClass("Tool")
                 end
 
                 -- Get the 2D screen position of a 3D point
-                function getScreenPosition(worldPosition)
+                local function getScreenPosition(worldPosition)
                     local screenPosition, onScreen = Camera:WorldToViewportPoint(worldPosition)
                     return screenPosition, onScreen
                 end
 
                 -- Get the nearest enemy to the cursor
-                function getNearestToCursor()
+                local function getNearestToCursor()
                     local cursorPosition = UIS:GetMouseLocation()
                     local nearestTarget = nil
                     local shortestDistance = math.huge
@@ -178,7 +182,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                 end
 
                 -- Main target selection logic
-                function getTarget()
+                local function getTarget()
                     if not settings then return nil end
 
                     local nearest = getNearestToCursor()
@@ -193,15 +197,15 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
 
                     if hitPart and hitPart.Parent == nearest.target.Parent then
-                        Draw(rayOrigin, hitPos, Color3.new(0, 1, 0))
+                        Draw(rayOrigin, hitPos, RayCastColor) -- Uses local RayCastColor
                         return nearest
                     end
                     return nil
                 end
 
                 -- Main loop
-                while not _G.disabled do
-                    task.wait(_G.FireRate)
+                while not disabled do
+                    task.wait(FireRate)
                     local weapon = get_weapon()
                     if not weapon then continue end
 
@@ -233,34 +237,38 @@ local AutoFireToggle = HumanTab:CreateToggle({
     end
 })
 
+-- Fire Rate Slider
 local FireRateSlider = HumanTab:CreateSlider({
     Name = "Fire Rate",
     Range = {0.02, 10},
     Increment = 0.01,
-    CurrentValue = 0.1,
+    CurrentValue = FireRate,
     Flag = "FireRate",
     Callback = function(Value)
-        _G.FireRate = Value
+        FireRate = Value
     end,
 })
 
+-- RayCast Material Dropdown
 local Dropdown = HumanTab:CreateDropdown({
    Name = "RayCast Materials",
-   Options = {"Neon","Plastic","Wood","Metal","Glass","DiamondPlate"},
+   Options = {"Neon", "Plastic", "Wood", "Metal", "Glass", "DiamondPlate"},
    CurrentOption = {"Neon"}, -- Default
    MultipleOptions = false,
-   Flag = "RayCastMaterialSet", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "RayCastMaterialSet",
    Callback = function(Options)
-      _G.LineMaterial = Options
+      RayCastMaterial = Options[1] -- Updates local RayCastMaterial
    end,
 })
 
+-- RayCast Color Picker
 local ColorPicker = HumanTab:CreateColorPicker({
    Name = "RayCast Color",
-   Color = Color3.fromRGB(0, 255, 0),
-   Flag = "LineColorPicker", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Color = RayCastColor,
+   Flag = "LineColorPicker",
    Callback = function(Color)
-      _G.LineColor = Value
+      RayCastColor = Color -- Updates local RayCastColor
    end
 })
+
 --End Of Human--
