@@ -273,8 +273,6 @@ local ColorPicker = HumanTab:CreateColorPicker({
 
 local isRainbowActive = false -- Track Rainbow Mode state
 
-local isRainbowActive = false -- Track Rainbow Mode state
-
 local TurnToolsRainbow = HumanTab:CreateToggle({
     Name = "RainbowMode",
     CurrentValue = false,
@@ -283,8 +281,8 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
         local player = game.Players.LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
 
-        -- Store original tool colors for all parts
-        local originalColors = {}
+        -- Store original tool properties (color and textures)
+        local originalToolData = {}
 
         -- Function to generate a rainbow color
         local function RainbowColor()
@@ -292,19 +290,32 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             return Color3.fromHSV(hue, 1, 1)
         end
 
-        -- Function to save original part colors
-        local function SaveOriginalColors(tool)
-            if not originalColors[tool] then
-                originalColors[tool] = {}
+        -- Function to save original part colors and textures
+        local function SaveOriginalToolData(tool)
+            if not originalToolData[tool] then
+                originalToolData[tool] = {
+                    partColors = {},
+                    textures = {}
+                }
             end
+
+            -- Save part colors
             for _, part in pairs(tool:GetDescendants()) do
                 if part:IsA("BasePart") then
-                    originalColors[tool][part] = part.Color
+                    originalToolData[tool].partColors[part] = part.Color
+                end
+            end
+
+            -- Save and remove textures/decals
+            for _, texture in pairs(tool:GetDescendants()) do
+                if texture:IsA("Texture") or texture:IsA("Decal") then
+                    table.insert(originalToolData[tool].textures, texture:Clone()) -- Clone to restore later
+                    texture:Destroy() -- Remove the texture/decal
                 end
             end
         end
 
-        -- Function to apply rainbow color to all parts
+        -- Function to apply rainbow color to all parts in a tool
         local function ApplyRainbowToTool(tool)
             for _, part in pairs(tool:GetDescendants()) do
                 if part:IsA("BasePart") then
@@ -313,28 +324,36 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             end
         end
 
-        -- Function to restore original colors
-        local function RestoreOriginalColors()
-            for tool, parts in pairs(originalColors) do
+        -- Function to restore original colors and textures
+        local function RestoreOriginalToolData()
+            for tool, data in pairs(originalToolData) do
                 if tool and tool.Parent then
-                    for part, color in pairs(parts) do
+                    -- Restore colors
+                    for part, color in pairs(data.partColors) do
                         if part and part:IsA("BasePart") then
                             part.Color = color
                         end
                     end
+
+                    -- Restore textures and decals
+                    for _, texture in pairs(data.textures) do
+                        if texture and tool:FindFirstChild(texture.Parent.Name) then
+                            texture.Parent = tool:FindFirstChild(texture.Parent.Name) or tool
+                        end
+                    end
                 end
             end
-            originalColors = {} -- Clear stored data
+            originalToolData = {} -- Clear stored data
         end
 
         -- Start Rainbow effect
         if Value then
             isRainbowActive = true -- Enable Rainbow Mode
 
-            -- Save original colors and start loop
+            -- Save original data and start loop
             for _, tool in pairs(character:GetChildren()) do
                 if tool:IsA("Tool") then
-                    SaveOriginalColors(tool)
+                    SaveOriginalToolData(tool)
                 end
             end
 
@@ -353,8 +372,8 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
         else
             isRainbowActive = false -- Disable Rainbow Mode
 
-            -- Restore original colors
-            RestoreOriginalColors()
+            -- Restore original colors and textures
+            RestoreOriginalToolData()
         end
     end
 })
