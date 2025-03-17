@@ -263,14 +263,16 @@ local Dropdown = HumanTab:CreateDropdown({
 
 -- RayCast Color Picker
 local ColorPicker = HumanTab:CreateColorPicker({
-   Name = "RayCast Color",
-   Color = RayCastColor,
-   Flag = "LineColorPicker",
-   Callback = function(Color)
-      RayCastColor = Color -- Updates local RayCastColor
-   end
+    Name = "RayCast Color",
+    Color = RayCastColor, -- Default RayCast Color
+    Flag = "LineColorPicker",
+    Callback = function(Color)
+       if not isRainbowActive then
+           RayCastColor = Color -- Update RayCastColor only if RainbowMode is OFF
+       end
+    end
 })
-
+ 
 local isRainbowActive = false -- Track Rainbow Mode state
 
 local TurnRaycastRainbow = HumanTab:CreateToggle({
@@ -281,8 +283,8 @@ local TurnRaycastRainbow = HumanTab:CreateToggle({
         local player = game.Players.LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
 
-        -- Store original raycast color
-        RayCastColor = Color3.fromRGB(0, 255, 0) -- Default Raycast Color
+        -- Store original RayCastColor (from the ColorPicker)
+        local originalRaycastColor = RayCastColor
 
         -- Function to generate a rainbow color
         local function RainbowColor()
@@ -290,35 +292,35 @@ local TurnRaycastRainbow = HumanTab:CreateToggle({
             return Color3.fromHSV(hue, 1, 1)
         end
 
-        -- Function to apply rainbow color to the raycast
+        -- Function to apply rainbow color to the RayCastColor
         local function ApplyRainbowToRaycast()
             while isRainbowActive do
-                task.wait(0.05) -- Faster color change for a smoother rainbow effect
-                _G.LineColor = RainbowColor() -- Updates the raycast color
+                task.wait(0.05) -- Smooth color transition
+                RayCastColor = RainbowColor() -- Update the RayCastColor for the AutoFire
             end
         end
 
-        -- Restore original raycast color
+        -- Function to restore original RayCastColor (from the ColorPicker)
         local function RestoreRaycastColor()
-            _G.LineColor = RayCastColor
+            RayCastColor = originalRaycastColor -- Restore to the ColorPicker's value
         end
 
         -- Start Rainbow effect
         if Value then
             isRainbowActive = true -- Enable Rainbow Mode
 
-            -- Store original raycast color if not already stored
-            if not RayCastColor then
-                RayCastColor = _G.LineColor
+            -- Store the original RayCastColor if not already stored
+            if not originalRaycastColor then
+                originalRaycastColor = RayCastColor
             end
 
-            -- Start the rainbow loop
+            -- Start applying the rainbow effect
             spawn(ApplyRainbowToRaycast)
 
         else
             isRainbowActive = false -- Disable Rainbow Mode
 
-            -- Restore original raycast color
+            -- Restore the original RayCastColor (from the ColorPicker)
             RestoreRaycastColor()
         end
     end
