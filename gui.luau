@@ -295,7 +295,7 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
                 if tool:IsA("Tool") then
                     local handle = tool:FindFirstChild("Handle")
                     if handle and handle:IsA("BasePart") then
-                        originalColors[tool] = handle.BrickColor
+                        originalColors[tool] = handle.Color -- Store the original Color3 value
                     end
                 end
             end
@@ -307,7 +307,7 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
                     if tool:IsA("Tool") then
                         local handle = tool:FindFirstChild("Handle")
                         if handle and handle:IsA("BasePart") then
-                            handle.BrickColor = BrickColor.new(RainbowColor())
+                            handle.Color = RainbowColor() -- Set Color3 instead of BrickColor
                         end
                     end
                 end
@@ -316,11 +316,12 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             -- Restore original colors when disabled
             for tool, color in pairs(originalColors) do
                 if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.BrickColor = color
+                    tool.Handle.Color = color -- Restore the original Color3 value
                 end
             end
             originalColors = {} -- Clear stored data
         end
     end
 })
+
 --End Of Human--
