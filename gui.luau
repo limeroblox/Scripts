@@ -273,6 +273,8 @@ local ColorPicker = HumanTab:CreateColorPicker({
 
 local isRainbowActive = false -- Track Rainbow Mode state
 
+local isRainbowActive = false -- Track Rainbow Mode state
+
 local TurnToolsRainbow = HumanTab:CreateToggle({
     Name = "RainbowMode",
     CurrentValue = false,
@@ -281,7 +283,7 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
         local player = game.Players.LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
 
-        -- Store original tool colors
+        -- Store original tool colors for all parts
         local originalColors = {}
 
         -- Function to generate a rainbow color
@@ -290,30 +292,59 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             return Color3.fromHSV(hue, 1, 1)
         end
 
+        -- Function to save original part colors
+        local function SaveOriginalColors(tool)
+            if not originalColors[tool] then
+                originalColors[tool] = {}
+            end
+            for _, part in pairs(tool:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    originalColors[tool][part] = part.Color
+                end
+            end
+        end
+
+        -- Function to apply rainbow color to all parts
+        local function ApplyRainbowToTool(tool)
+            for _, part in pairs(tool:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Color = RainbowColor()
+                end
+            end
+        end
+
+        -- Function to restore original colors
+        local function RestoreOriginalColors()
+            for tool, parts in pairs(originalColors) do
+                if tool and tool.Parent then
+                    for part, color in pairs(parts) do
+                        if part and part:IsA("BasePart") then
+                            part.Color = color
+                        end
+                    end
+                end
+            end
+            originalColors = {} -- Clear stored data
+        end
+
         -- Start Rainbow effect
         if Value then
             isRainbowActive = true -- Enable Rainbow Mode
 
-            -- Save original tool colors
+            -- Save original colors and start loop
             for _, tool in pairs(character:GetChildren()) do
                 if tool:IsA("Tool") then
-                    local handle = tool:FindFirstChild("Handle")
-                    if handle and handle:IsA("BasePart") then
-                        originalColors[tool] = handle.Color -- Store the original Color3 value
-                    end
+                    SaveOriginalColors(tool)
                 end
             end
 
-            -- Apply rainbow color loop
+            -- Apply rainbow effect in a loop
             spawn(function()
                 while isRainbowActive do
                     task.wait(0.1)
                     for _, tool in pairs(character:GetChildren()) do
                         if tool:IsA("Tool") then
-                            local handle = tool:FindFirstChild("Handle")
-                            if handle and handle:IsA("BasePart") then
-                                handle.Color = RainbowColor() -- Apply the rainbow color
-                            end
+                            ApplyRainbowToTool(tool)
                         end
                     end
                 end
@@ -323,14 +354,7 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             isRainbowActive = false -- Disable Rainbow Mode
 
             -- Restore original colors
-            for tool, color in pairs(originalColors) do
-                if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Color = color -- Restore the original Color3 value
-                end
-            end
-
-            -- Clear stored colors
-            originalColors = {}
+            RestoreOriginalColors()
         end
     end
 })
