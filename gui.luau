@@ -119,36 +119,43 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     [7] = nil
                 }
 
-                -- Function to draw and animate raycast lines (Grows Outward)
+                -- Function to draw and animate raycast lines (Grows Outwards with Fade Delay)
                 local function Draw(p22, p23)
                     local v24 = Instance.new("Part", workspace.RayCast or workspace)
                     v24.Material = RayCastMaterial
                     v24.Anchored = true
                     v24.CanCollide = false
                     v24.Transparency = 0
-                    v24.Color = RayCastColor -- Uses the current RayCastColor (including RainbowMode)
-                    
-                    -- Set initial small size
-                    local initialSize = Vector3.new(0.1, 0, 0.1)
-                    v24.Size = initialSize
-                    
-                    -- Position the raycast correctly
+                    v24.Color = RayCastColor
+
+                    -- Set initial small size for growing effect
                     local rayLength = (p22 - p23).Magnitude
+                    v24.Size = Vector3.new(0.1, 0, 0.1)
+
+                    -- Position the raycast correctly
                     v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -rayLength / 2) * CFrame.Angles(math.pi / 2, 0, 0)
-                    
-                    -- Tween for growing and fading
-                    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    
-                    -- Goal: Grow to full size and fade out
-                    local goal = {
-                        Size = Vector3.new(0.1, rayLength, 0.1), -- Gradually grows to full size
-                        Transparency = 1 -- Fades out
+
+                    -- Tween for growth
+                    local growTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local growGoal = {
+                        Size = Vector3.new(0.1, rayLength, 0.1)
                     }
+                    local growTween = TweenService:Create(v24, growTweenInfo, growGoal)
+                    growTween:Play()
 
-                    local tween = TweenService:Create(v24, tweenInfo, goal)
-                    tween:Play()
+                    -- Delay the fade-out to ensure full growth before shrinking
+                    task.wait(1.05)
 
-                    -- Cleanup after 1.5 seconds
+                    -- Tween for fading and shrinking after delay
+                    local fadeTweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local fadeGoal = {
+                        Transparency = 1, -- Fade out
+                        Size = Vector3.new(0.1, rayLength * 0.8, 0.1) -- Slight shrink for visual effect
+                    }
+                    local fadeTween = TweenService:Create(v24, fadeTweenInfo, fadeGoal)
+                    fadeTween:Play()
+
+                    -- Cleanup after 1.5 seconds total
                     game.Debris:AddItem(v24, 1.5)
                 end
 
@@ -211,7 +218,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
 
                     if hitPart and hitPart:IsDescendantOf(nearest.target.Parent) then
-                        Draw(rayOrigin, hitPos) -- Now uses RainbowMode's RayCastColor
+                        Draw(rayOrigin, hitPos) -- Draws the ray with updated logic
                         return nearest
                     end
                     return nil
