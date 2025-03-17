@@ -121,7 +121,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
 
                 -- Function to draw and animate raycast lines
                 local function Draw(p22, p23)
-                    local v24 = Instance.new("Part", workspace.RayCast)
+                    local v24 = Instance.new("Part", workspace.RayCast or workspace)
                     v24.Material = RayCastMaterial
                     v24.Anchored = true
                     v24.CanCollide = false
@@ -131,7 +131,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -(p22 - p23).Magnitude / 2) * CFrame.Angles(math.pi / 2, 0, 0)
 
                     -- Tween for fading and shrinking
-                    local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
                     -- Shrink and fade animation
                     local goal = {
@@ -142,13 +142,13 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local tween = TweenService:Create(v24, tweenInfo, goal)
                     tween:Play()
 
-                    -- Cleanup after 3 seconds
-                    game.Debris:AddItem(v24, 3)
+                    -- Cleanup after 1.5 seconds
+                    game.Debris:AddItem(v24, 1.5)
                 end
 
                 -- Function to get the player's current weapon
                 local function get_weapon()
-                    return localplayer.Character:FindFirstChildOfClass("Tool")
+                    return localplayer.Character and localplayer.Character:FindFirstChildOfClass("Tool")
                 end
 
                 -- Get the 2D screen position of a 3D point
@@ -163,37 +163,31 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local nearestTarget = nil
                     local shortestDistance = math.huge
 
-                    for _, player in pairs(game.Players:GetPlayers()) do
-                        if player.Team ~= localplayer.Team then
+                    for _, player in ipairs(game.Players:GetPlayers()) do
+                        if player.Team ~= localplayer.Team and player.Character then
                             local character = player.Character
-                            if not character then continue end
-
                             local hrp = character:FindFirstChild(target_part)
-                            if not hrp then continue end
-
-                            local ability = character:FindFirstChild("Ability")
-                            if not ability or ability.Value == "Blackvalk" then continue end
-
                             local humanoid = character:FindFirstChildOfClass("Humanoid")
-                            if not humanoid or humanoid.Health <= 0 then continue end
 
-                            local screenPosition, onScreen = getScreenPosition(hrp.Position)
-                            if not onScreen then continue end
-
-                            local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
-                            if distance < shortestDistance then
-                                shortestDistance = distance
-                                nearestTarget = {
-                                    position = hrp.Position,
-                                    target = hrp
-                                }
+                            if hrp and humanoid and humanoid.Health > 0 then
+                                local screenPosition, onScreen = getScreenPosition(hrp.Position)
+                                if onScreen then
+                                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
+                                    if distance < shortestDistance then
+                                        shortestDistance = distance
+                                        nearestTarget = {
+                                            position = hrp.Position,
+                                            target = hrp
+                                        }
+                                    end
+                                end
                             end
                         end
                     end
                     return nearestTarget
                 end
 
-                -- Main target selection logic
+                -- Main target selection logic (Raycasting check)
                 local function getTarget()
                     if not settings then return nil end
 
@@ -206,9 +200,11 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local rayOrigin = torso.Position
                     local rayDirection = (nearest.position - rayOrigin).Unit * settings["RANGE"]
                     local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
-                    local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
+                    local ray = Ray.new(rayOrigin, rayDirection)
 
-                    if hitPart and hitPart.Parent == nearest.target.Parent then
+                    local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+
+                    if hitPart and hitPart:IsDescendantOf(nearest.target.Parent) then
                         Draw(rayOrigin, hitPos) -- Now uses RainbowMode's RayCastColor
                         return nearest
                     end
@@ -230,7 +226,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local aimbot = getTarget()
                     if aimbot and aimbot.target and aimbot.position then
                         replacement[4] = aimbot.target
-                        replacement[5] = CFrame.new(weapon.Barrel.Position, aimbot.position).LookVector
+                        replacement[5] = (aimbot.position - weapon.Barrel.Position).Unit
                         replacement[7] = aimbot.position
 
                         shoot_event:FireServer(weapon,
@@ -243,7 +239,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                             settings.RANGE)
                     end
                 end
-                print("disabled")
+                print("AutoFire disabled")
             end)
         end
     end
