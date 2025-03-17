@@ -282,7 +282,7 @@ local TurnRaycastRainbow = HumanTab:CreateToggle({
         local character = player.Character or player.CharacterAdded:Wait()
 
         -- Store original raycast color
-        local originalRaycastColor = Color3.fromRGB(0, 255, 0) -- Default Raycast Color
+        RayCastColor = Color3.fromRGB(0, 255, 0) -- Default Raycast Color
 
         -- Function to generate a rainbow color
         local function RainbowColor()
@@ -300,7 +300,7 @@ local TurnRaycastRainbow = HumanTab:CreateToggle({
 
         -- Restore original raycast color
         local function RestoreRaycastColor()
-            _G.LineColor = originalRaycastColor
+            _G.LineColor = RayCastColor
         end
 
         -- Start Rainbow effect
@@ -308,8 +308,8 @@ local TurnRaycastRainbow = HumanTab:CreateToggle({
             isRainbowActive = true -- Enable Rainbow Mode
 
             -- Store original raycast color if not already stored
-            if not originalRaycastColor then
-                originalRaycastColor = _G.LineColor
+            if not RayCastColor then
+                RayCastColor = _G.LineColor
             end
 
             -- Start the rainbow loop
