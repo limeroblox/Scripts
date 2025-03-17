@@ -107,7 +107,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                 local UIS = game:GetService("UserInputService")
                 local Camera = workspace.CurrentCamera
                 local shoot_event = game:GetService("ReplicatedStorage").PEW
-                local Debris = game:GetService("Debris")
+                local TweenService = game:GetService("TweenService")
                 local localplayer = game.Players.LocalPlayer
                 local settings = nil
                 local target_part = "Head"
@@ -119,19 +119,31 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     [7] = nil
                 }
 
-                -- Function to draw debug lines
-                local function Draw(p22, p23, color)
+                -- Function to draw and animate raycast lines
+                local function Draw(p22, p23)
                     local v24 = Instance.new("Part", workspace.RayCast)
                     v24.Material = RayCastMaterial
                     v24.Anchored = true
                     v24.CanCollide = false
                     v24.Transparency = 0
-                    v24.Color = RayCastColor
-                    v24.Size = Vector3.new(0, 0, 0)
-                    local v25 = (p22 - p23).Magnitude
-                    v24.Size = Vector3.new(0.1, v25, 0.1)
-                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -v25 / 2) * CFrame.Angles(math.pi / 2, 0, 0)
-                    Debris:AddItem(v24, 0.1)
+                    v24.Color = RayCastColor -- Uses the current RayCastColor (including RainbowMode)
+                    v24.Size = Vector3.new(0.1, (p22 - p23).Magnitude, 0.1)
+                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -(p22 - p23).Magnitude / 2) * CFrame.Angles(math.pi / 2, 0, 0)
+
+                    -- Tween for fading and shrinking
+                    local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+
+                    -- Shrink and fade animation
+                    local goal = {
+                        Size = Vector3.new(0, (p22 - p23).Magnitude * 0.5, 0), -- Shrinks smoothly
+                        Transparency = 1 -- Fades out
+                    }
+
+                    local tween = TweenService:Create(v24, tweenInfo, goal)
+                    tween:Play()
+
+                    -- Cleanup after 3 seconds
+                    game.Debris:AddItem(v24, 3)
                 end
 
                 -- Function to get the player's current weapon
@@ -197,7 +209,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(Ray.new(rayOrigin, rayDirection), ignoreList)
 
                     if hitPart and hitPart.Parent == nearest.target.Parent then
-                        Draw(rayOrigin, hitPos, RayCastColor) -- Uses local RayCastColor
+                        Draw(rayOrigin, hitPos) -- Now uses RainbowMode's RayCastColor
                         return nearest
                     end
                     return nil
