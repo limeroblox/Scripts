@@ -50,8 +50,8 @@ local BlackWhiteTheme = {
 local Window = Rayfield:CreateWindow({
     Name = "Transfur Outbreak | Lime.Cheat V2 | Mobile Edition",
     Icon = 6472368967, 
-    LoadingTitle = "Loading gui..",
-    LoadingSubtitle = "only mobile compatible ui :P",
+    LoadingTitle = "Loading gui...",
+    LoadingSubtitle = " ",
     Theme = BlackWhiteTheme, 
 
     DisableRayfieldPrompts = false,
@@ -60,7 +60,7 @@ local Window = Rayfield:CreateWindow({
     ConfigurationSaving = {
        Enabled = true,
        FolderName = nil, 
-       FileName = "Big Hub"
+       FileName = "TransfurOutbreak Script By @Limeroblox On Discord!"
     },
 
     Discord = {
@@ -84,17 +84,17 @@ local Window = Rayfield:CreateWindow({
 -- Tabs 
 local HumanTab = Window:CreateTab("Human")
 local InfectedTab = Window:CreateTab("Infected")
+
 --Start Of Human--
-
 -- Rage Label
-
 local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
+
 -- Local Variables
 
-local FireRate = 0.1 -- Default Fire Rate
+local FireRate = 0.5 -- Default Fire Rate
 local RayCastMaterial = "Neon" -- Default Material
 local RayCastColor = Color3.fromRGB(0, 255, 0) -- Default RayCast Color
-local disabled = true -- Auto Fire State
+local disabled = true -- Auto Fire State (If it is true, no auto, if false auto is on)
 
 local AutoFireToggle = HumanTab:CreateToggle({
     Name = "Auto Fire",
@@ -240,7 +240,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
 -- Fire Rate Slider
 local FireRateSlider = HumanTab:CreateSlider({
     Name = "Fire Rate",
-    Range = {0.02, 10},
+    Range = {0.02, 1},
     Increment = 0.01,
     CurrentValue = FireRate,
     Flag = "FireRate",
@@ -252,7 +252,7 @@ local FireRateSlider = HumanTab:CreateSlider({
 -- RayCast Material Dropdown
 local Dropdown = HumanTab:CreateDropdown({
    Name = "RayCast Materials",
-   Options = {"Neon", "Plastic", "Wood", "Metal", "Glass", "DiamondPlate"},
+   Options = {"Neon", "Plastic", "Wood", "Metal", "Glass", "DiamondPlate", "Foil", "Grass", "Ice", "Fabric", "Sand", "Granite", "Brick", "Pebble", "Cobblestone", "Marble", "Slate", "Concrete", "CorrodedMetal", "SmoothPlastic"},
    CurrentOption = {"Neon"}, -- Default
    MultipleOptions = false,
    Flag = "RayCastMaterialSet",
@@ -271,4 +271,56 @@ local ColorPicker = HumanTab:CreateColorPicker({
    end
 })
 
+local TurnToolsRainbow = HumanTab:CreateToggle({
+    Name = "RainbowMode",
+    CurrentValue = false,
+    Flag = "GAYMODE",
+    Callback = function(Value)
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Store original tool properties
+        local originalColors = {}
+
+        -- Function to cycle through RGB colors
+        local function RainbowColor()
+            local hue = tick() % 5 / 5
+            return Color3.fromHSV(hue, 1, 1)
+        end
+
+        -- Start Rainbow effect
+        if Value then
+            -- Save original tool colors
+            for _, tool in pairs(character:GetChildren()) do
+                if tool:IsA("Tool") then
+                    local handle = tool:FindFirstChild("Handle")
+                    if handle and handle:IsA("BasePart") then
+                        originalColors[tool] = handle.BrickColor
+                    end
+                end
+            end
+
+            -- Apply rainbow color loop
+            while TurnToolsRainbow.CurrentValue do
+                task.wait(0.1)
+                for _, tool in pairs(character:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        local handle = tool:FindFirstChild("Handle")
+                        if handle and handle:IsA("BasePart") then
+                            handle.BrickColor = BrickColor.new(RainbowColor())
+                        end
+                    end
+                end
+            end
+        else
+            -- Restore original colors when disabled
+            for tool, color in pairs(originalColors) do
+                if tool and tool:FindFirstChild("Handle") then
+                    tool.Handle.BrickColor = color
+                end
+            end
+            originalColors = {} -- Clear stored data
+        end
+    end
+})
 --End Of Human--
