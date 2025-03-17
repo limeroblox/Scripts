@@ -119,7 +119,7 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     [7] = nil
                 }
 
-                -- Function to draw and animate raycast lines
+                -- Function to draw and animate raycast lines (Grows Outward)
                 local function Draw(p22, p23)
                     local v24 = Instance.new("Part", workspace.RayCast or workspace)
                     v24.Material = RayCastMaterial
@@ -127,15 +127,21 @@ local AutoFireToggle = HumanTab:CreateToggle({
                     v24.CanCollide = false
                     v24.Transparency = 0
                     v24.Color = RayCastColor -- Uses the current RayCastColor (including RainbowMode)
-                    v24.Size = Vector3.new(0.1, (p22 - p23).Magnitude, 0.1)
-                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -(p22 - p23).Magnitude / 2) * CFrame.Angles(math.pi / 2, 0, 0)
-
-                    -- Tween for fading and shrinking
+                    
+                    -- Set initial small size
+                    local initialSize = Vector3.new(0.1, 0, 0.1)
+                    v24.Size = initialSize
+                    
+                    -- Position the raycast correctly
+                    local rayLength = (p22 - p23).Magnitude
+                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -rayLength / 2) * CFrame.Angles(math.pi / 2, 0, 0)
+                    
+                    -- Tween for growing and fading
                     local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-
-                    -- Shrink and fade animation
+                    
+                    -- Goal: Grow to full size and fade out
                     local goal = {
-                        Size = Vector3.new(0, (p22 - p23).Magnitude * 0.5, 0), -- Shrinks smoothly
+                        Size = Vector3.new(0.1, rayLength, 0.1), -- Gradually grows to full size
                         Transparency = 1 -- Fades out
                     }
 
