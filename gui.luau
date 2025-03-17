@@ -273,7 +273,7 @@ local ColorPicker = HumanTab:CreateColorPicker({
 
 local isRainbowActive = false -- Track Rainbow Mode state
 
-local TurnToolsRainbow = HumanTab:CreateToggle({
+local TurnRaycastRainbow = HumanTab:CreateToggle({
     Name = "RainbowMode",
     CurrentValue = false,
     Flag = "GAYMODE",
@@ -281,8 +281,8 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
         local player = game.Players.LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
 
-        -- Store original tool properties (color and textures)
-        local originalToolData = {}
+        -- Store original raycast color
+        local originalRaycastColor = Color3.fromRGB(0, 255, 0) -- Default Raycast Color
 
         -- Function to generate a rainbow color
         local function RainbowColor()
@@ -290,90 +290,36 @@ local TurnToolsRainbow = HumanTab:CreateToggle({
             return Color3.fromHSV(hue, 1, 1)
         end
 
-        -- Function to save original part colors and textures
-        local function SaveOriginalToolData(tool)
-            if not originalToolData[tool] then
-                originalToolData[tool] = {
-                    partColors = {},
-                    textures = {}
-                }
-            end
-
-            -- Save part colors
-            for _, part in pairs(tool:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    originalToolData[tool].partColors[part] = part.Color
-                end
-            end
-
-            -- Save and remove textures/decals
-            for _, texture in pairs(tool:GetDescendants()) do
-                if texture:IsA("Texture") or texture:IsA("Decal") then
-                    table.insert(originalToolData[tool].textures, texture:Clone()) -- Clone to restore later
-                    texture:Destroy() -- Remove the texture/decal
-                end
+        -- Function to apply rainbow color to the raycast
+        local function ApplyRainbowToRaycast()
+            while isRainbowActive do
+                task.wait(0.05) -- Faster color change for a smoother rainbow effect
+                _G.LineColor = RainbowColor() -- Updates the raycast color
             end
         end
 
-        -- Function to apply rainbow color to all parts in a tool
-        local function ApplyRainbowToTool(tool)
-            for _, part in pairs(tool:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Color = RainbowColor()
-                end
-            end
-        end
-
-        -- Function to restore original colors and textures
-        local function RestoreOriginalToolData()
-            for tool, data in pairs(originalToolData) do
-                if tool and tool.Parent then
-                    -- Restore colors
-                    for part, color in pairs(data.partColors) do
-                        if part and part:IsA("BasePart") then
-                            part.Color = color
-                        end
-                    end
-
-                    -- Restore textures and decals
-                    for _, texture in pairs(data.textures) do
-                        if texture and tool:FindFirstChild(texture.Parent.Name) then
-                            texture.Parent = tool:FindFirstChild(texture.Parent.Name) or tool
-                        end
-                    end
-                end
-            end
-            originalToolData = {} -- Clear stored data
+        -- Restore original raycast color
+        local function RestoreRaycastColor()
+            _G.LineColor = originalRaycastColor
         end
 
         -- Start Rainbow effect
         if Value then
             isRainbowActive = true -- Enable Rainbow Mode
 
-            -- Save original data and start loop
-            for _, tool in pairs(character:GetChildren()) do
-                if tool:IsA("Tool") then
-                    SaveOriginalToolData(tool)
-                end
+            -- Store original raycast color if not already stored
+            if not originalRaycastColor then
+                originalRaycastColor = _G.LineColor
             end
 
-            -- Apply rainbow effect in a loop
-            spawn(function()
-                while isRainbowActive do
-                    task.wait(0.1)
-                    for _, tool in pairs(character:GetChildren()) do
-                        if tool:IsA("Tool") then
-                            ApplyRainbowToTool(tool)
-                        end
-                    end
-                end
-            end)
+            -- Start the rainbow loop
+            spawn(ApplyRainbowToRaycast)
 
         else
             isRainbowActive = false -- Disable Rainbow Mode
 
-            -- Restore original colors and textures
-            RestoreOriginalToolData()
+            -- Restore original raycast color
+            RestoreRaycastColor()
         end
     end
 })
