@@ -514,7 +514,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
-Utils.Notify('Demonology ESP Ver: 1.2.0', 'ESP Loaded Successfully!\n\(Made By @lime.bat On Discord)', 3)
+Utils.Notify('Demonology ESP BETA_Ver: 1.2.0', 'ESP Loaded Successfully!\n\(Made By @lime.bat On Discord)', 3)
 notifyGhostFavoriteRoom()
 task.wait(5)
 infiniteyeild()
