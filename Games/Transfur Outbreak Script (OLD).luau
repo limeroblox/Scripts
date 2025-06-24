@@ -91,7 +91,7 @@ local Label = HumanTab:CreateLabel("Rage", Color3.fromRGB(255, 255, 255), false)
 
 -- Local Variables
 
-local FireRate = 0.5 -- Default Fire Rate
+local FireRate = 1 -- Default Fire Rate
 local RayCastMaterial = "Neon" -- Default Material
 local RayCastColor = Color3.fromRGB(0, 255, 0) -- Default RayCast Color
 local disabled = true -- Auto Fire State (If it is true, no auto, if false auto is on)
@@ -101,159 +101,147 @@ local AutoFireToggle = HumanTab:CreateToggle({
     CurrentValue = false,
     Flag = "AutoFire",
     Callback = function(Value)
-        disabled = not Value
-        if Value then
-            spawn(function()
-                local UIS = game:GetService("UserInputService")
-                local Camera = workspace.CurrentCamera
-                local shoot_event = game:GetService("ReplicatedStorage").PEW
-                local TweenService = game:GetService("TweenService")
-                local localplayer = game.Players.LocalPlayer
-                local settings = nil
-                local target_part = "Head"
+        local UIS = game:GetService("UserInputService")
+        local Camera = workspace.CurrentCamera
+        local shoot_event = game:GetService("ReplicatedStorage").PEW
+        local TweenService = game:GetService("TweenService")
+        local localplayer = game.Players.LocalPlayer
+        local disabled = not Value -- track disabled state locally
+        local target_part = "Head"
+        local replacement = {
+            [3] = 0.1,
+            [4] = nil,
+            [5] = nil,
+            [7] = nil
+        }
+        local settings = nil
 
-                local replacement = {
-                    [3] = 0.1,
-                    [4] = nil,
-                    [5] = nil,
-                    [7] = nil
-                }
+        -- Function to draw and animate raycast lines (same as your original)
+        local function Draw(p22, p23)
+            local v24 = Instance.new("Part", workspace.RayCast or workspace)
+            v24.Material = RayCastMaterial
+            v24.Anchored = true
+            v24.CanCollide = false
+            v24.Transparency = 0
+            v24.Color = RayCastColor
 
-                -- Function to draw and animate raycast lines (Grows Outwards with Fade Delay)
-                local function Draw(p22, p23)
-                    local v24 = Instance.new("Part", workspace.RayCast or workspace)
-                    v24.Material = RayCastMaterial
-                    v24.Anchored = true
-                    v24.CanCollide = false
-                    v24.Transparency = 0
-                    v24.Color = RayCastColor
+            local rayLength = (p22 - p23).Magnitude
+            v24.Size = Vector3.new(0.1, 0, 0.1)
+            v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -rayLength / 2) * CFrame.Angles(math.pi / 2, 0, 0)
 
-                    -- Set initial small size for growing effect
-                    local rayLength = (p22 - p23).Magnitude
-                    v24.Size = Vector3.new(0.1, 0, 0.1)
+            local growTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local growGoal = { Size = Vector3.new(0.1, rayLength, 0.1) }
+            local growTween = TweenService:Create(v24, growTweenInfo, growGoal)
+            growTween:Play()
 
-                    -- Position the raycast correctly
-                    v24.CFrame = CFrame.new(p22, p23) * CFrame.new(0, 0, -rayLength / 2) * CFrame.Angles(math.pi / 2, 0, 0)
+            task.wait(1.05)
 
-                    -- Tween for growth
-                    local growTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    local growGoal = {
-                        Size = Vector3.new(0.1, rayLength, 0.1)
-                    }
-                    local growTween = TweenService:Create(v24, growTweenInfo, growGoal)
-                    growTween:Play()
+            local fadeTweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local fadeGoal = { Transparency = 1, Size = Vector3.new(0.1, rayLength * 0.8, 0.1) }
+            local fadeTween = TweenService:Create(v24, fadeTweenInfo, fadeGoal)
+            fadeTween:Play()
 
-                    -- Delay the fade-out to ensure full growth before shrinking
-                    task.wait(1.05)
+            game.Debris:AddItem(v24, 1.5)
+        end
 
-                    -- Tween for fading and shrinking after delay
-                    local fadeTweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    local fadeGoal = {
-                        Transparency = 1, -- Fade out
-                        Size = Vector3.new(0.1, rayLength * 0.8, 0.1) -- Slight shrink for visual effect
-                    }
-                    local fadeTween = TweenService:Create(v24, fadeTweenInfo, fadeGoal)
-                    fadeTween:Play()
+        local function get_weapon()
+            return localplayer.Character and localplayer.Character:FindFirstChildOfClass("Tool")
+        end
 
-                    -- Cleanup after 1.5 seconds total
-                    game.Debris:AddItem(v24, 1.5)
-                end
+        local function getScreenPosition(worldPosition)
+            local screenPosition, onScreen = Camera:WorldToViewportPoint(worldPosition)
+            return screenPosition, onScreen
+        end
 
-                -- Function to get the player's current weapon
-                local function get_weapon()
-                    return localplayer.Character and localplayer.Character:FindFirstChildOfClass("Tool")
-                end
+        local function getNearestToCursor()
+            local cursorPosition = UIS:GetMouseLocation()
+            local nearestTarget = nil
+            local shortestDistance = math.huge
 
-                -- Get the 2D screen position of a 3D point
-                local function getScreenPosition(worldPosition)
-                    local screenPosition, onScreen = Camera:WorldToViewportPoint(worldPosition)
-                    return screenPosition, onScreen
-                end
+            for _, player in ipairs(game.Players:GetPlayers()) do
+                if player.Team ~= localplayer.Team and player.Character then
+                    local character = player.Character
+                    local hrp = character:FindFirstChild(target_part)
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
 
-                -- Get the nearest enemy to the cursor
-                local function getNearestToCursor()
-                    local cursorPosition = UIS:GetMouseLocation()
-                    local nearestTarget = nil
-                    local shortestDistance = math.huge
-
-                    for _, player in ipairs(game.Players:GetPlayers()) do
-                        if player.Team ~= localplayer.Team and player.Character then
-                            local character = player.Character
-                            local hrp = character:FindFirstChild(target_part)
-                            local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-                            if hrp and humanoid and humanoid.Health > 0 then
-                                local screenPosition, onScreen = getScreenPosition(hrp.Position)
-                                if onScreen then
-                                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
-                                    if distance < shortestDistance then
-                                        shortestDistance = distance
-                                        nearestTarget = {
-                                            position = hrp.Position,
-                                            target = hrp
-                                        }
-                                    end
-                                end
+                    if hrp and humanoid and humanoid.Health > 0 then
+                        local screenPosition, onScreen = getScreenPosition(hrp.Position)
+                        if onScreen then
+                            local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                nearestTarget = { position = hrp.Position, target = hrp }
                             end
                         end
                     end
-                    return nearestTarget
                 end
+            end
+            return nearestTarget
+        end
 
-                -- Main target selection logic (Raycasting check)
-                local function getTarget()
-                    if not settings then return nil end
+        local function getTarget()
+            if not settings then return nil end
 
-                    local nearest = getNearestToCursor()
-                    if not nearest then return nil end
+            local nearest = getNearestToCursor()
+            if not nearest then return nil end
 
-                    local torso = localplayer.Character and localplayer.Character:FindFirstChild("Torso")
-                    if not torso then return nil end
+            local torso = localplayer.Character and localplayer.Character:FindFirstChild("Torso")
+            if not torso then return nil end
 
-                    local rayOrigin = torso.Position
-                    local rayDirection = (nearest.position - rayOrigin).Unit * settings["RANGE"]
-                    local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
-                    local ray = Ray.new(rayOrigin, rayDirection)
+            local rayOrigin = torso.Position
+            local rayDirection = (nearest.position - rayOrigin).Unit * settings["RANGE"]
+            local ignoreList = {localplayer.Character, localplayer.Character.Parent, workspace.RayCast}
+            local ray = Ray.new(rayOrigin, rayDirection)
 
-                    local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+            local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
 
-                    if hitPart and hitPart:IsDescendantOf(nearest.target.Parent) then
-                        Draw(rayOrigin, hitPos) -- Draws the ray with updated logic
-                        return nearest
-                    end
-                    return nil
-                end
+            if hitPart and hitPart:IsDescendantOf(nearest.target.Parent) then
+                Draw(rayOrigin, hitPos)
+                return nearest
+            end
+            return nil
+        end
 
-                -- Main loop
+        if Value then
+            -- Spawn a new thread for autofire loop
+            spawn(function()
                 while not disabled do
-                    task.wait(FireRate)
                     local weapon = get_weapon()
-                    if not weapon then continue end
+                    if weapon then
+                        local data = weapon:FindFirstChild("SETTINGS")
+                        if data then
+                            settings = require(data)
+                            replacement[3] = settings.FIRERATE
+                            -- Use settings.FIRERATE directly for wait delay
+                            local aimbot = getTarget()
+                            if aimbot and aimbot.target and aimbot.position then
+                                replacement[4] = aimbot.target
+                                replacement[5] = (aimbot.position - weapon.Barrel.Position).Unit
+                                replacement[7] = aimbot.position
 
-                    local data = weapon:FindFirstChild("SETTINGS")
-                    if not data then continue end
-
-                    settings = require(data)
-                    replacement[3] = settings.FIRERATE
-
-                    local aimbot = getTarget()
-                    if aimbot and aimbot.target and aimbot.position then
-                        replacement[4] = aimbot.target
-                        replacement[5] = (aimbot.position - weapon.Barrel.Position).Unit
-                        replacement[7] = aimbot.position
-
-                        shoot_event:FireServer(weapon,
-                            settings.COUNT,
-                            replacement[3],
-                            replacement[4],
-                            replacement[5],
-                            false,
-                            replacement[7],
-                            settings.RANGE)
+                                shoot_event:FireServer(
+                                    weapon,
+                                    settings.COUNT,
+                                    replacement[3],
+                                    replacement[4],
+                                    replacement[5],
+                                    false,
+                                    replacement[7],
+                                    settings.RANGE
+                                )
+                            end
+                            task.wait(settings.FIRERATE or 0.1) -- fallback wait
+                        else
+                            task.wait(0.1)
+                        end
+                    else
+                        task.wait(0.1)
                     end
                 end
                 print("AutoFire disabled")
             end)
+        else
+            disabled = true -- stops the running loop
         end
     end
 })
