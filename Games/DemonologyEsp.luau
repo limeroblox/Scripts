@@ -92,6 +92,16 @@ function Utils.Notify(title, text, duration)
     end
 end
 
+--// Drawing API availability check //-- 
+local drawingSupported = pcall(function()
+    return Drawing and Drawing.new
+end)
+
+if not drawingSupported then
+    Utils.Notify("Demonology ESP", "Drawing API not supported in this executor", 5)
+    return           -- abort loading ESP
+end
+
 -- Create or update text ESP for an instance
 local function createOrUpdateTextESP(instance, text, color)
     if not instance or not instance:IsA('BasePart') then
@@ -126,7 +136,7 @@ local function createOrUpdateTextESP(instance, text, color)
     drawings.main.Color = color or COLORS.Ghost
 
     -- Fixed typo: "drawlings" -> "drawings"
-    drawings.shadow.Visible = false
+    -- drawings.shadow.Visible = false (Removed due to bugs)
     drawings.main.Visible = true
 end
 
