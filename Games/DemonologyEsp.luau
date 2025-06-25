@@ -104,6 +104,8 @@ local function createOrUpdateTextESP(instance, text, color)
             main = Drawing.new('Text'),
             shadow = Drawing.new('Text'),
         }
+        espObjects[instance] = drawings
+        
         -- Setup shadow text (glow behind)
         drawings.shadow.Size = 15
         drawings.shadow.Center = true
@@ -111,13 +113,11 @@ local function createOrUpdateTextESP(instance, text, color)
         drawings.shadow.Color = Color3.new(0, 0, 0)
         drawings.shadow.Visible = false
         drawings.shadow.Font = 2 -- Comic Sans MS
-        espObjects[instance] = drawings
 
         -- Setup main text
         drawings.main.Size = 13
         drawings.main.Center = true
         drawings.main.Outline = true
-        -- Set initial visibility to true here (or manage externally)
         drawings.main.Visible = true
         drawings.main.Font = 2 -- Comic Sans MS
     end
@@ -125,7 +125,8 @@ local function createOrUpdateTextESP(instance, text, color)
     drawings.main.Text = text
     drawings.main.Color = color or COLORS.Ghost
 
-    drawlings.shadow.Visible = false
+    -- Fixed typo: "drawlings" -> "drawings"
+    drawings.shadow.Visible = false
     drawings.main.Visible = true
 end
 
@@ -201,12 +202,21 @@ local function updateESPPositions()
             continue
         end
         
-        local screenPos, onScreen = Camera:WorldToViewportPoint(inst.Position)
+        -- Check if instance has a Position property
+        local instancePosition = inst.Position or inst.CFrame.Position
+        if not instancePosition then
+            table.insert(toRemove, inst)
+            drawings.main.Visible = false
+            drawings.shadow.Visible = false
+            continue
+        end
+        
+        local screenPos, onScreen = Camera:WorldToViewportPoint(instancePosition)
         
         if onScreen and screenPos.Z > 0 then
-            local distance = (cameraPosition - inst.Position).Magnitude
+            local distance = (cameraPosition - instancePosition).Magnitude
             
-            -- More controlled scaling
+            -- More controlled scaling with proper math.clamp usage
             local mainSize
             if distance <= 30 then
                 -- Close range: 13-15
@@ -218,10 +228,12 @@ local function updateESPPositions()
             
             local x, y = math.floor(screenPos.X), math.floor(screenPos.Y)
             
+            -- Update main text
             drawings.main.Size = mainSize
             drawings.main.Position = Vector2.new(x, y)
             drawings.main.Visible = true
             
+            -- Update shadow text
             drawings.shadow.Size = mainSize + 2
             drawings.shadow.Position = Vector2.new(x + 1, y + 1)
             drawings.shadow.Visible = true
@@ -231,12 +243,17 @@ local function updateESPPositions()
         end
     end
     
-    -- Cleanup
+    -- Cleanup removed instances
     for _, inst in ipairs(toRemove) do
         local drawings = espObjects[inst]
         if drawings then
-            drawings.main:Remove()
-            drawings.shadow:Remove()
+            -- Properly dispose of Drawing objects
+            if drawings.main then
+                drawings.main:Remove()
+            end
+            if drawings.shadow then
+                drawings.shadow:Remove()
+            end
         end
         espObjects[inst] = nil
     end
@@ -514,7 +531,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
-Utils.Notify('Demonology ESP BETA_Ver: 1.2.0', 'ESP Loaded Successfully!\n\(Made By @lime.bat On Discord)', 3)
+Utils.Notify('Demonology ESP Ver: 1.2.0', 'ESP Loaded Successfully!\n\(Made By @lime.bat On Discord)', 3)
 notifyGhostFavoriteRoom()
 task.wait(5)
 infiniteyeild()
