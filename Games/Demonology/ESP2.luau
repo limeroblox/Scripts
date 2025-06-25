@@ -373,7 +373,8 @@ end)
 --//  SECTION ❿ – Startup Banner
 --===========================================================================
 
-Utils.Notify("Demonology ESP", "ESP Loaded Successfully!\n(Made by @lime.bat)", 3)
+Utils.Notify("Demonology ESP", "Loaded Successfully!\n(Made by @lime.bat on discord)", 3)
+Utils.Notify("!", "Note that you can open infinte yeild by pressing ; on your keyboard", 3)
 notifyGhostFavoriteRoom()
 
 --###########################################################################
