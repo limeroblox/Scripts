@@ -1,4 +1,4 @@
--- pls fuck me deep istg
+-- 
 loadstring(game:HttpGet('https://raw.githubusercontent.com/limeroblox/JanlibSupportForVelocity/refs/heads/main/janlib.lua'))()
 --
 local MainTab = library:AddTab("Main")
