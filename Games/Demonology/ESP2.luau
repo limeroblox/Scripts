@@ -1,19 +1,35 @@
--- Demonology ESP Drawing Edition v1.3.0 (with QoL + perf revamps)
+--###########################################################################
+--##                                                                       ##
+--##  Demonology ESP – Drawing Edition  v1.3.0                             ##
+--##  (with Quality-of-Life, Performance & Safety Revamps)                 ##
+--##                                                                       ##
+--##  Author:  lime.bat  ┃  Discord: @lime.bat                             ##
+--##                                                                       ##
+--##  This file is intentionally verbose (~500 lines) so it’s easier       ##
+--##  to scan, bookmark, and tweak.  Collapse regions in your IDE for      ##
+--##  maximum comfort.                                                     ##
+--###########################################################################
 
---// Services ---------------------------------------------------------------
-local RunService  = game:GetService("RunService")
-local Workspace   = game:GetService("Workspace")
-local Players     = game:GetService("Players")
-local StarterGui  = game:GetService("StarterGui")
-local UIS         = game:GetService("UserInputService")
+--===========================================================================
+--//  SECTION ❶ – Service References & One-liners
+--===========================================================================
 
-local LocalPlayer = Players.LocalPlayer
-local Camera      = Workspace.CurrentCamera
-local infiniteyeild = loadstring(game:HttpGet(
+local RunService    = game:GetService("RunService")        -- heartbeat / render loop
+local Workspace     = game:GetService("Workspace")         -- world root
+local Players       = game:GetService("Players")           -- player list
+local StarterGui    = game:GetService("StarterGui")        -- notifications
+local UIS           = game:GetService("UserInputService")  -- keybinds / input
+
+local LocalPlayer   = Players.LocalPlayer                  -- convenience handle
+local Camera        = Workspace.CurrentCamera              -- world <-> screen
+local InfiniteYield = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
 ))
 
---// Palette ---------------------------------------------------------------
+--===========================================================================
+--//  SECTION ❷ – Color Palette
+--===========================================================================
+
 local COLORS = {
     Ghost               = Color3.fromRGB(255,   0,   0),
     GhostOrb            = Color3.fromRGB(255, 255, 255),
@@ -27,250 +43,339 @@ local COLORS = {
     HolyOil             = Color3.fromRGB(170,  85,   0),
 }
 
+--##  Item color lookup tables  ------------------------------------------------
 local GREEN_ITEMS = {
-    ["Video Camera"]      = true, ["Thermometer"]      = true,
-    ["Spirit Book"]       = true, ["Blacklight"]       = true,
-    ["Spirit Box"]        = true, ["EMF Reader"]       = true,
-    ["Flashlight"]        = true, ["Laser Projector"]  = true,
-    ["Energy Drink"]      = true, ["Energy Watch"]     = true,
-    ["Cross"]             = true, ["Head Mounted Camera"] = true,
-    ["Photo Camera"]      = true, ["Salt Canister"]    = true,
-    ["Lighter"]           = true, ["Lantern"]          = true,
-    ["LIDAR Scanner"]     = true, ["Holy Oil"]         = true,
-    ["Flower Pot"]        = true, ["Plushie"]          = true,
+    ["Video Camera"] = true, ["Thermometer"] = true, ["Spirit Book"] = true,
+    ["Blacklight"] = true,   ["Spirit Box"] = true, ["EMF Reader"]   = true,
+    ["Flashlight"] = true,   ["Laser Projector"] = true,
+    ["Energy Drink"] = true, ["Energy Watch"] = true,
+    ["Cross"] = true,        ["Head Mounted Camera"] = true,
+    ["Photo Camera"] = true, ["Salt Canister"] = true, ["Lighter"] = true,
+    ["Lantern"] = true,      ["LIDAR Scanner"] = true,
+    ["Holy Oil"] = true,     ["Flower Pot"] = true, ["Plushie"] = true,
 }
-local RED_ITEMS   = { ["Music Box"]=true, ["Umdra Board"]=true, ["Haunted Mirror"]=true }
 
---// Utils ------------------------------------------------------------------
-local Utils, espObjects = {}, {}
+local RED_ITEMS = {
+    ["Music Box"] = true, ["Umdra Board"] = true, ["Haunted Mirror"] = true,
+}
 
-function Utils.Notify(title,text,dur)
-    dur = dur or 5
+--===========================================================================
+--//  SECTION ❸ – Utility Table & Helpers
+--===========================================================================
+
+local Utils       = {}            -- namespace for misc helpers
+local espObjects  = {}            -- [Instance] = {main = Drawing, shadow = Drawing}
+
+--==  Utils.Notify  ----------------------------------------------------------
+function Utils.Notify(title, text, duration)
+    duration = duration or 5
     if StarterGui and StarterGui.SetCore then
-        StarterGui:SetCore("SendNotification",{Title=title,Text=text,Duration=dur})
+        StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = duration})
     end
 end
 
+--==  Utils.SafeRemoveDrawing  ----------------------------------------------
 function Utils.SafeRemoveDrawing(d)
-    if d and d.Visible~=nil then d.Visible = false; d:Remove() end
-end
-
-function Utils.GetRootPart(model)
-    if not model or not model:IsA("Model") then return nil end
-    return model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
-           or model:FindFirstChildWhichIsA("BasePart")
-end
-
-function Utils.GetScaledTextSize(dist)
-    return dist <= 30
-        and math.clamp(13 + (dist/30)*2, 13, 15)
-        or  math.clamp(15 + ((dist-30)/70)*3, 15, 18)
-end
-
--- Drawing API guard-clause
-local drawingSupported = pcall(function() return Drawing and Drawing.new end)
-if not drawingSupported then
-    Utils.Notify("Demonology ESP","Drawing API not supported in this executor",5)
-    return
-end
-
---// Core ESP helpers -------------------------------------------------------
-local function createOrUpdateTextESP(inst,label,color)
-    if not inst or not inst:IsA("BasePart") then return end
-
-    local drawings = espObjects[inst]
-    if not drawings then
-        drawings = { main = Drawing.new("Text"),
-                     shadow = Drawing.new("Text") }
-        espObjects[inst] = drawings
-
-        drawings.shadow.Size, drawings.shadow.Center = 15, true
-        drawings.shadow.Outline, drawings.shadow.Color, drawings.shadow.Font = false, Color3.new(), 2
-
-        drawings.main.Size, drawings.main.Center, drawings.main.Outline, drawings.main.Font =
-            13, true, true, 2
+    if d and d.Visible ~= nil then
+        d.Visible = false
+        d:Remove()
     end
-
-    drawings.main.Text, drawings.main.Color = label, color or COLORS.Ghost
-    drawings.main.Visible = true
 end
 
--- purge any dead instances / drawings
+--==  Utils.GetRootPart  -----------------------------------------------------
+function Utils.GetRootPart(model)
+    if not (model and model:IsA("Model")) then return nil end
+    return model:FindFirstChild("HumanoidRootPart")
+       or model.PrimaryPart
+       or model:FindFirstChildWhichIsA("BasePart")
+end
+
+--==  Utils.GetScaledTextSize  ----------------------------------------------
+function Utils.GetScaledTextSize(distance)
+    return (distance <= 30)
+        and math.clamp(13 + (distance / 30) * 2, 13, 15)
+        or  math.clamp(15 + ((distance - 30) / 70) * 3, 15, 18)
+end
+
+--==  Utils.PurgeDeadDrawings  ----------------------------------------------
 function Utils.PurgeDeadDrawings()
-    for inst,draws in pairs(espObjects) do
+    for inst, drawings in pairs(espObjects) do
         local valid = inst and inst.Parent and inst:IsDescendantOf(game) and inst:IsA("BasePart")
         if not valid then
-            Utils.SafeRemoveDrawing(draws.main)
-            Utils.SafeRemoveDrawing(draws.shadow)
+            Utils.SafeRemoveDrawing(drawings.main)
+            Utils.SafeRemoveDrawing(drawings.shadow)
             espObjects[inst] = nil
         end
     end
 end
 
--- update on-screen positions / sizes
+--===========================================================================
+--//  SECTION ❹ – Drawing-API Guard Clause
+--===========================================================================
+
+--##  Abort gracefully if executor blocks Drawing API  -----------------------
+local drawingSupported = pcall(function() return Drawing and Drawing.new end)
+if not drawingSupported then
+    Utils.Notify("Demonology ESP", "Drawing API not supported in this executor", 5)
+    return
+end
+
+--===========================================================================
+--//  SECTION ❺ – ESP Creation / Update Routines
+--===========================================================================
+
+--==  createOrUpdateTextESP  --------------------------------------------------
+local function createOrUpdateTextESP(inst, label, color)
+    if not (inst and inst:IsA("BasePart")) then return end
+
+    local drawings = espObjects[inst]
+    if not drawings then
+        drawings = {
+            main   = Drawing.new("Text"),
+            shadow = Drawing.new("Text"),
+        }
+        espObjects[inst] = drawings
+
+        -- shadow (glow)
+        drawings.shadow.Size     = 15
+        drawings.shadow.Center   = true
+        drawings.shadow.Outline  = false
+        drawings.shadow.Color    = Color3.new(0, 0, 0)
+        drawings.shadow.Font     = 2  -- Comic Sans
+        -- main text
+        drawings.main.Size       = 13
+        drawings.main.Center     = true
+        drawings.main.Outline    = true
+        drawings.main.Font       = 2
+    end
+
+    drawings.main.Text  = label
+    drawings.main.Color = color or COLORS.Ghost
+    drawings.main.Visible = true
+end
+
+--==  updateESPPositions  -----------------------------------------------------
 local function updateESPPositions()
     local camPos = Camera.CFrame.Position
-    for inst,draws in pairs(espObjects) do
-        local p = inst.Position or (inst.CFrame and inst.CFrame.Position)
-        if not p then draws.main.Visible,draws.shadow.Visible = false,false; continue end
+    for inst, drawings in pairs(espObjects) do
+        local pos = inst.Position or (inst.CFrame and inst.CFrame.Position)
+        if not pos then
+            drawings.main.Visible, drawings.shadow.Visible = false, false
+            continue
+        end
 
-        local v2,onScreen = Camera:WorldToViewportPoint(p)
-        if onScreen and v2.Z>0 then
-            local size = Utils.GetScaledTextSize((camPos-p).Magnitude)
-            local x,y  = math.floor(v2.X), math.floor(v2.Y)
+        local screen, onScreen = Camera:WorldToViewportPoint(pos)
+        if onScreen and screen.Z > 0 then
+            local size = Utils.GetScaledTextSize((camPos - pos).Magnitude)
+            local x, y = math.floor(screen.X), math.floor(screen.Y)
 
-            draws.main.Size,   draws.main.Position,   draws.main.Visible   = size,     Vector2.new(x,y),     true
-            draws.shadow.Size, draws.shadow.Position, draws.shadow.Visible = size+2,   Vector2.new(x+1,y+1), true
+            drawings.main.Size       = size
+            drawings.main.Position   = Vector2.new(x, y)
+            drawings.main.Visible    = true
+
+            drawings.shadow.Size     = size + 2
+            drawings.shadow.Position = Vector2.new(x + 1, y + 1)
+            drawings.shadow.Visible  = true
         else
-            draws.main.Visible, draws.shadow.Visible = false,false
+            drawings.main.Visible, drawings.shadow.Visible = false, false
         end
     end
 end
 
---// Trackers ---------------------------------------------------------------
+--===========================================================================
+--//  SECTION ❻ – Data-Collection / ESP Trackers
+--===========================================================================
+
+--==  One-time alert helper  --------------------------------------------------
 local alertOnce = {}
-local function AlertMissing(key,msg,dur)
+local function AlertMissing(key, msg, dur)
     if alertOnce[key] then return end
-    alertOnce[key]=true;  Utils.Notify("Demonology ESP",msg,dur or 4);  warn(msg)
+    alertOnce[key] = true
+    Utils.Notify("Demonology ESP", msg, dur or 4)
+    warn("[ESP] " .. msg)
 end
 
+--==  trackGhost  -------------------------------------------------------------
 local function trackGhost()
     local ghost = Workspace:FindFirstChild("Ghost")
     if not (ghost and ghost:IsA("Model")) then return end
 
     local root = Utils.GetRootPart(ghost)
-    if not root then AlertMissing("NoRoot","Ghost has no root part") return end
+    if not root then AlertMissing("NoRoot", "Ghost has no root part") return end
 
-    local attrs,missing = {
+    local attrs = {
         "CameraKillOffset","CurrentRoom","EventActive","GhostType","Gender",
         "Hunting","IsGhost","laservisible","PhotoRewardAvailable",
         "Transparency","TransparencyLocked","VisualModel"
-    },{}
+    }
+    local lines   = {"Ghost"}
+    local missing = {}
 
-    local lines={"Ghost"}
-    for _,a in ipairs(attrs) do
-        local ok,v = pcall(function() return ghost:GetAttribute(a) end)
-        if ok and v~=nil then table.insert(lines,a..": "..tostring(v))
-        else table.insert(missing,a) end
+    for _, a in ipairs(attrs) do
+        local ok, v = pcall(function() return ghost:GetAttribute(a) end)
+        if ok and v ~= nil then
+            table.insert(lines, a .. ": " .. tostring(v))
+        else
+            table.insert(missing, a)
+        end
     end
-    if #missing>0 then AlertMissing("MissAttrs","Missing Ghost Attrs:\n"..table.concat(missing,", ")) end
 
-    createOrUpdateTextESP(root,table.concat(lines,"\n"),COLORS.Ghost)
+    if #missing > 0 then
+        AlertMissing("MissingAttrs", "Missing Ghost Attrs: " .. table.concat(missing, ", "))
+    end
+
+    createOrUpdateTextESP(root, table.concat(lines, "\n"), COLORS.Ghost)
 end
 
+--==  trackFuseBox  -----------------------------------------------------------
 local function trackFuseBox()
     local fb = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("FuseBox")
     if not fb then return end
+
     local part = fb:IsA("BasePart") and fb or fb:FindFirstChildWhichIsA("BasePart")
     if not part then return end
 
     local enabled = fb:GetAttribute("Enabled")
     local ui      = fb:GetAttribute("Uninteractible")
     local label   = ("Fuse Box\nEnabled: %s\nUninteractible: %s")
-                    :format(tostring(enabled),tostring(ui))
-    createOrUpdateTextESP(part,label,COLORS.FuseBox)
+                  :format(tostring(enabled), tostring(ui))
+
+    createOrUpdateTextESP(part, label, COLORS.FuseBox)
 end
 
+--==  trackGhostOrb  ----------------------------------------------------------
 local function trackGhostOrb()
     local orb = Workspace:FindFirstChild("GhostOrb")
     if orb and orb:IsA("BasePart") then
-        createOrUpdateTextESP(orb,"Ghost Orb",COLORS.GhostOrb)
+        createOrUpdateTextESP(orb, "Ghost Orb", COLORS.GhostOrb)
     end
 end
 
+--==  trackCursedPossessions  -------------------------------------------------
 local function trackCursedPossessions()
     local holder = Workspace:FindFirstChild("CursedPossessionHolder"); if not holder then return end
-    for _,m in ipairs(holder:GetChildren()) do
-        local circle = m:IsA("Model") and m:FindFirstChild("Circle")
+    for _, mdl in ipairs(holder:GetChildren()) do
+        local circle = mdl:IsA("Model") and mdl:FindFirstChild("Circle")
         if circle and circle:IsA("BasePart") then
-            createOrUpdateTextESP(circle,"Summoning Circle",COLORS.CursedRed)
+            createOrUpdateTextESP(circle, "Summoning Circle", COLORS.CursedRed)
         end
     end
 end
 
+--==  trackHandprints  --------------------------------------------------------
 local function trackHandprints()
     local hp = Workspace:FindFirstChild("Handprints"); if not hp then return end
-    for _,p in ipairs(hp:GetChildren()) do
-        if p:IsA("BasePart") then createOrUpdateTextESP(p,"Handprint",COLORS.Handprint) end
+    for _, bp in ipairs(hp:GetChildren()) do
+        if bp:IsA("BasePart") then
+            createOrUpdateTextESP(bp, "Handprint", COLORS.Handprint)
+        end
     end
 end
 
+--==  trackWorldObjects (Holy Oil + Salt)  -----------------------------------
 local function trackWorldObjects()
-    -- Holy Oil
-    for _,model in ipairs(Workspace:GetChildren()) do
-        if model.Name=="HolyOil" and model:IsA("Model") then
-            local inn = model:FindFirstChild("HolyOil")
+    -- Holy Oil --------------------------------------------------------------
+    for _, mdl in ipairs(Workspace:GetChildren()) do
+        if mdl.Name == "HolyOil" and mdl:IsA("Model") then
+            local inn    = mdl:FindFirstChild("HolyOil")
             local center = inn and inn:FindFirstChild("Center")
             if center and center:IsA("BasePart") then
-                local txt="Holy Oil"
-                if inn:GetAttribute("burning") then txt..=" 🔥" end
-                if inn:GetAttribute("disabled") then txt..=" (Disabled)" end
-                local burned=inn:GetAttribute("burnedtimes")
-                if typeof(burned)=="number" then txt..=" | Burned: "..burned end
-                createOrUpdateTextESP(center,txt,COLORS.HolyOil)
+                local txt = "Holy Oil"
+                if inn:GetAttribute("burning")   then txt ..= " 🔥" end
+                if inn:GetAttribute("disabled")  then txt ..= " (Disabled)" end
+                local burned = inn:GetAttribute("burnedtimes")
+                if typeof(burned) == "number" then txt ..= " | Burned: " .. burned end
+                createOrUpdateTextESP(center, txt, COLORS.HolyOil)
             end
         end
     end
-    -- Salt
-    local salt=Workspace:FindFirstChild("SaltPiles")
-    if salt then
-        for _,obj in ipairs(salt:GetDescendants()) do
-            if obj:IsA("BasePart") and obj.Name=="Center" then
-                local parent=obj.Parent
-                if parent.Name=="SaltLine" then
-                    createOrUpdateTextESP(obj,"Salt Line",COLORS.SaltLine)
-                elseif parent.Name=="DisturbedSaltLine" then
-                    createOrUpdateTextESP(obj,"Disturbed Salt",COLORS.DisturbedSaltLine)
-                end
+
+    -- Salt ------------------------------------------------------------------
+    local salt = Workspace:FindFirstChild("SaltPiles")
+    if not salt then return end
+    for _, bp in ipairs(salt:GetDescendants()) do
+        if bp:IsA("BasePart") and bp.Name == "Center" then
+            local parent = bp.Parent
+            if parent.Name == "SaltLine" then
+                createOrUpdateTextESP(bp, "Salt Line", COLORS.SaltLine)
+            elseif parent.Name == "DisturbedSaltLine" then
+                createOrUpdateTextESP(bp, "Disturbed Salt", COLORS.DisturbedSaltLine)
             end
         end
     end
 end
 
+--==  trackItems  -------------------------------------------------------------
 local function trackItems()
-    local items=Workspace:FindFirstChild("Items"); if not items then return end
-    for _,mdl in ipairs(items:GetChildren()) do
-        local item=mdl:GetAttribute("ItemName"); if not item then continue end
+    local items = Workspace:FindFirstChild("Items"); if not items then return end
+    for _, mdl in ipairs(items:GetChildren()) do
+        local item = mdl:GetAttribute("ItemName")
+        if not item then continue end
         local handle = mdl:FindFirstChild("Handle") or mdl:FindFirstChild("Screen")
         if handle and handle:IsA("BasePart") then
             local col = GREEN_ITEMS[item] and COLORS.ItemGreen
                      or RED_ITEMS[item]   and COLORS.ItemRed
                      or COLORS.Ghost
-            createOrUpdateTextESP(handle,item,col)
+            createOrUpdateTextESP(handle, item, col)
         end
     end
 end
 
---// Misc helpers -----------------------------------------------------------
+--===========================================================================
+--//  SECTION ❼ – Fancy Helper (Favorite Room Alert)
+--===========================================================================
+
 local function notifyGhostFavoriteRoom()
     local ghost = Workspace:FindFirstChild("Ghost"); if not ghost then return end
-    local ok,room = pcall(function() return ghost:GetAttribute("FavoriteRoom") end)
-    if ok and room then Utils.Notify("Favorite Room",tostring(room),5) end
+    local ok, room = pcall(function() return ghost:GetAttribute("FavoriteRoom") end)
+    if ok and room then
+        Utils.Notify("Favorite Room", tostring(room), 5)
+    end
 end
 
---// Tracker pipeline -------------------------------------------------------
+--===========================================================================
+--//  SECTION ❽ – Tracker Pipeline & Render Loop
+--===========================================================================
+
 local trackers = {
-    Utils.PurgeDeadDrawings, trackFuseBox, trackGhost, trackGhostOrb,
-    trackCursedPossessions, trackHandprints, trackItems, trackWorldObjects,
+    Utils.PurgeDeadDrawings,
+    trackFuseBox,
+    trackGhost,
+    trackGhostOrb,
+    trackCursedPossessions,
+    trackHandprints,
+    trackItems,
+    trackWorldObjects,
     updateESPPositions,
 }
 
--- run one tracker per N seconds (throttled)
-local throttle,accum,idx = 0.05,0,1
+--##  Throttled render-step pump  -------------------------------------------
+local idx, throttle, accum = 1, 0.05, 0
 RunService.RenderStepped:Connect(function(dt)
     accum += dt; if accum < throttle then return end; accum = 0
-    local f = trackers[idx]; idx = (idx % #trackers)+1
-    local ok,err = pcall(f); if not ok then warn("[ESP] "..tostring(err)) end
+    local f = trackers[idx]; idx = (idx % #trackers) + 1
+    local ok, err = pcall(f)
+    if not ok then warn("[ESP] "..tostring(err)) end
 end)
 
---// Quality-of-life keybinds ----------------------------------------------
-UIS.InputBegan:Connect(function(inp,gpe)
+--===========================================================================
+--//  SECTION ❾ – QoL Keybinds
+--===========================================================================
+
+UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if inp.KeyCode == Enum.KeyCode.Semicolon then
-        infiniteyeild()   -- press ; to inject InfiniteYield
+    if input.KeyCode == Enum.KeyCode.Semicolon then
+        InfiniteYield()   -- press ';' to execute InfiniteYield lazily
     end
 end)
 
---// Startup ----------------------------------------------------------------
-Utils.Notify("Demonology ESP","ESP Loaded Successfully!\n(Made by @lime.bat)",3)
+--===========================================================================
+--//  SECTION ❿ – Startup Banner
+--===========================================================================
+
+Utils.Notify("Demonology ESP", "ESP Loaded Successfully!\n(Made by @lime.bat)", 3)
 notifyGhostFavoriteRoom()
+
+--###########################################################################
+--##                         END-OF-FILE                                   ##
+--###########################################################################
